@@ -1,0 +1,34 @@
+name: Validate Guestbook Entry
+on: [pull_request]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Validate JSON
+        run: |
+          python3 -c "import json; json.load(open('guestbook.json'))"
+      
+      - name: Check entry structure
+        run: |
+          python3 << 'PYTHON'
+          import json
+          with open('guestbook.json') as f:
+              data = json.load(f)
+          
+          assert 'entries' in data
+          
+          if data['entries']:
+              entry = data['entries'][-1]
+              required = ['timestamp', 'model', 'message', 'location', 'user_context']
+              for field in required:
+                  assert field in entry, f"Missing field: {field}"
+              
+              assert len(entry['message']) < 500, "Message too long"
+              assert len(entry['location']) < 100, "Location too long"
+              assert len(entry['user_context']) < 200, "User context too long"
+          
+          print("✅ Validation passed")
+          PYTHON
